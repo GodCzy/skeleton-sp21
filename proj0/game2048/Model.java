@@ -5,7 +5,7 @@ import java.util.Observable;
 
 
 /** The state of a game of 2048.
- *  @author TODO: YOUR NAME HERE
+ *  @author C2Y
  */
 public class Model extends Observable {
     /** Current contents of the board. */
@@ -109,10 +109,50 @@ public class Model extends Observable {
     public boolean tilt(Side side) {
         boolean changed;
         changed = false;
+        // 设置视角为指定的方向，简化处理逻辑
+        board.setViewingPerspective(side);
+
+        // 遍历每一列，逐列处理向上移动和合并
+        for (int col = 0; col < board.size(); col++) {
+            int targetRow = board.size() - 1; // 从顶行开始放置移动的格子
+
+            // 从倒数第二行向上遍历，以避免重复移动和合并
+            for (int row = board.size() - 2; row >= 0; row--) {
+                Tile t = board.tile(col, row);
+                if (t != null) { // 如果该格子有tile
+                    int moveToRow = targetRow;
+
+                    // 寻找上方的第一个非空格子以判断是否合并
+                    while (moveToRow > row && board.tile(col, moveToRow) == null) {
+                        moveToRow--;
+                    }
+
+                    if (moveToRow > row && board.tile(col, moveToRow).value() == t.value()) {
+                        // 如果上方有相同值的tile，进行合并
+                        board.move(col, moveToRow, t);
+                        score += board.tile(col, moveToRow).value();
+                        changed = true;
+                        targetRow = moveToRow - 1; // 更新目标位置，防止多次合并
+                    } else {
+                        // 如果上方没有合并可能，则仅向上移动
+                        moveToRow = targetRow;
+                        if (row != moveToRow) {
+                            board.move(col, moveToRow, t);
+                            changed = true;
+                        }
+                        targetRow--; // 减少目标行位置
+                    }
+                }
+            }
+        }
+
+        // 恢复视角到北方向，便于后续操作
+        board.setViewingPerspective(Side.NORTH);
 
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
+
 
         checkGameOver();
         if (changed) {
@@ -138,6 +178,14 @@ public class Model extends Observable {
      * */
     public static boolean emptySpaceExists(Board b) {
         // TODO: Fill in this function.
+        for(int col = 0; col < b.size(); col = col + 1){
+            for(int row = 0; row < b.size(); row = row + 1)
+                if(b.tile(col, row) == null){
+                    return true;
+                }
+
+        }
+
         return false;
     }
 
@@ -148,6 +196,15 @@ public class Model extends Observable {
      */
     public static boolean maxTileExists(Board b) {
         // TODO: Fill in this function.
+        for (int col = 0; col < b.size(); col++) {
+            for (int row = 0; row < b.size(); row++) {
+                Tile t = b.tile(col, row);
+                // 检查该位置的瓷砖是否存在，以及其值是否为 MAX_PIECE
+                if (t != null && t.value() == MAX_PIECE) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -159,6 +216,32 @@ public class Model extends Observable {
      */
     public static boolean atLeastOneMoveExists(Board b) {
         // TODO: Fill in this function.
+        for (int col = 0; col < b.size(); col++) {
+            for (int row = 0; row < b.size(); row++) {
+                Tile t1 = b.tile(col, row);
+
+                // 如果有空位置，返回true，因为存在有效移动
+                if (t1 == null) {
+                    return true;
+                }
+
+                // 检查当前瓷砖的右侧（col + 1）是否有相同的值
+                if (col + 1 < b.size()) {
+                    Tile t2 = b.tile(col + 1, row);
+                    if (t2 != null && t1.value() == t2.value()) {
+                        return true;
+                    }
+                }
+
+                // 检查当前瓷砖的下方（row + 1）是否有相同的值
+                if (row + 1 < b.size()) {
+                    Tile t3 = b.tile(col, row + 1);
+                    if (t3 != null && t1.value() == t3.value()) {
+                        return true;
+                    }
+                }
+            }
+        }
         return false;
     }
 
