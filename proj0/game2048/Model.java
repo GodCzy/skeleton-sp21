@@ -107,40 +107,41 @@ public class Model extends Observable {
      *    and the trailing tile does not.
      * */
     public boolean tilt(Side side) {
-        boolean changed;
-        changed = false;
+        boolean changed = false;
+
         // 设置视角为指定的方向，简化处理逻辑
         board.setViewingPerspective(side);
 
-        // 遍历每一列，逐列处理向上移动和合并
-        for (int col = 0; col < board.size(); col++) {
-            int targetRow = board.size() - 1; // 从顶行开始放置移动的格子
+        int i , j , record ;
+        for(i = 0; i < this.size(); i++ ){
+            int bottom = this.size();
+            for(j = this.size() - 2; j >= 0 ; j-- ){
+                int object = 0;
+                if(board.tile(i,j) != null ){
+                    object = board.tile(i,j).value();
+                }   //获取被操作格的值
 
-            // 从倒数第二行向上遍历，以避免重复移动和合并
-            for (int row = board.size() - 2; row >= 0; row--) {
-                Tile t = board.tile(col, row);
-                if (t != null) { // 如果该格子有tile
-                    int moveToRow = targetRow;
+                if(object != 0){   //如果被操作格为0，则不进行检测或移动操作
+                    for(record = j+1; record < bottom; record++ ){  //遍历寻找目标格
+                        if(board.tile(i,record) != null) {   //寻找有数字的格或为位于最顶端的空白格
 
-                    // 寻找上方的第一个非空格子以判断是否合并
-                    while (moveToRow > row && board.tile(col, moveToRow) == null) {
-                        moveToRow--;
-                    }
+                            if (board.tile(i, record).value() != object) {  //不相等则移动到前一个格子
+                                board.move(i, record - 1, board.tile(i, j));
+                                changed = true;
+                                break;
+                            } else{  //相等则合并，并计算分数
+                                board.move(i, record, board.tile(i, j));
+                                score += 2 * object;
+                                bottom = record;
+                                changed = true;
+                                break;
+                            }
 
-                    if (moveToRow > row && board.tile(col, moveToRow).value() == t.value()) {
-                        // 如果上方有相同值的tile，进行合并
-                        board.move(col, moveToRow, t);
-                        score += board.tile(col, moveToRow).value();
-                        changed = true;
-                        targetRow = moveToRow - 1; // 更新目标位置，防止多次合并
-                    } else {
-                        // 如果上方没有合并可能，则仅向上移动
-                        moveToRow = targetRow;
-                        if (row != moveToRow) {
-                            board.move(col, moveToRow, t);
+                        }else if(record == bottom - 1){
+                            board.move(i, record , board.tile(i, j));
                             changed = true;
+                            break;
                         }
-                        targetRow--; // 减少目标行位置
                     }
                 }
             }
@@ -149,17 +150,14 @@ public class Model extends Observable {
         // 恢复视角到北方向，便于后续操作
         board.setViewingPerspective(Side.NORTH);
 
-        // TODO: Modify this.board (and perhaps this.score) to account
-        // for the tilt to the Side SIDE. If the board changed, set the
-        // changed local variable to true.
-
-
+        // 更新游戏结束状态
         checkGameOver();
         if (changed) {
             setChanged();
         }
         return changed;
     }
+
 
     /** Checks if the game is over and sets the gameOver variable
      *  appropriately.
@@ -284,3 +282,7 @@ public class Model extends Observable {
         return toString().hashCode();
     }
 }
+
+
+
+
